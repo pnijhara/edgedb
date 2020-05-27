@@ -3318,6 +3318,18 @@ class TestEdgeQLDDL(tb.DDLTestCase):
             {}
         )
 
+    async def test_edgeql_ddl_extending_06(self):
+        with self.assertRaisesRegex(
+                edgedb.InvalidReferenceError,
+                r"object type 'str' does not exist",
+                # Details is not exposed in edgedb-python yet
+                # _details='consider using CREATE SCALAR TYPE'
+                _hint='type is scalar'):
+
+            await self.con.execute(r"""
+                CREATE TYPE test::ScalarType06 EXTENDING str;
+            """)
+
     async def test_edgeql_ddl_modules_01(self):
         try:
             await self.con.execute(r"""
