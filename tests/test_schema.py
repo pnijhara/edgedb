@@ -4151,7 +4151,7 @@ class TestDescribe(tb.BaseSchemaLoadTest):
                     SELECT (
                        ((name)[5:] IF (name LIKE 'std::%') ELSE
                        ((name)[9:] IF (name LIKE 'default::%') ELSE
-                        re_replace('(.+?)::(.+$)', r'\1__\2', name)))
+                        std::re_replace('(.+?)::(.+$)', r'\1__\2', name)))
                       ++ '_Type'
                     )
                 )
@@ -4217,11 +4217,7 @@ class TestDescribe(tb.BaseSchemaLoadTest):
             """
             CREATE ABSTRACT CONSTRAINT test::my_one_of(one_of: array<anytype>){
                 SET orig_expr := 'contains(one_of, __subject__)';
-                USING (WITH
-                    MODULE test
-                SELECT
-                    contains(one_of, __subject__)
-                );
+                USING (std::contains(one_of, __subject__));
             };
             """
         )
@@ -4397,13 +4393,7 @@ class TestDescribe(tb.BaseSchemaLoadTest):
 
             '''
             abstract type test::HasImage {
-                index on (WITH
-                    MODULE test
-                SELECT
-                    __subject__.image
-                ) {
-                    orig_expr := '__subject__.image';
-                };
+                index on (__subject__.image);
                 required single property image -> std::str;
             };
             ''',
@@ -4413,13 +4403,7 @@ class TestDescribe(tb.BaseSchemaLoadTest):
             '''
             CREATE ABSTRACT TYPE test::HasImage {
                 CREATE REQUIRED SINGLE PROPERTY image -> std::str;
-                CREATE INDEX ON (WITH
-                    MODULE test
-                SELECT
-                    __subject__.image
-                ) {
-                    SET orig_expr := '__subject__.image';
-                };
+                CREATE INDEX ON (__subject__.image);
             };
             '''
         )
@@ -4473,11 +4457,7 @@ class TestDescribe(tb.BaseSchemaLoadTest):
             CREATE ABSTRACT CONSTRAINT test::my_one_of(one_of: array<anytype>)
             {
                 SET orig_expr := 'contains(one_of, __subject__)';
-                USING (WITH
-                    MODULE test
-                SELECT
-                    contains(one_of, __subject__)
-                );
+                USING (std::contains(one_of, __subject__));
             };
             ''',
 
@@ -4488,21 +4468,10 @@ class TestDescribe(tb.BaseSchemaLoadTest):
                 optional single link translated_label
                 extending test::translated_label
                         -> test::Label {
-                    constraint std::exclusive on (WITH
-                        MODULE test
-                    SELECT
-                        __subject__@prop1
-                    ) {
-                        orig_subjectexpr := '__subject__@prop1';
-                    };
-                    constraint std::exclusive on (WITH
-                        MODULE test
-                    SELECT
+                    constraint std::exclusive on (__subject__@prop1);
+                    constraint std::exclusive on (
                         (__subject__@source, __subject__@lang)
-                    ) {
-                        orig_subjectexpr :=
-                            '(__subject__@source, __subject__@lang)';
-                    };
+                    );
                 };
             };
             ''',
@@ -4565,7 +4534,7 @@ class TestDescribe(tb.BaseSchemaLoadTest):
             'DESCRIBE OBJECT std::len_value AS SDL',
 
             '''
-            abstract constraint std::len_value on (len(<std::str>__subject__))
+            abstract constraint std::len_value on (std::len(<std::str>__subject__))
             {
                 errmessage := 'invalid {__subject__}';
                 orig_subjectexpr := 'len(<std::str>__subject__)';
@@ -4637,15 +4606,12 @@ class TestDescribe(tb.BaseSchemaLoadTest):
             CREATE TYPE test::Foo {
                 CREATE OPTIONAL SINGLE PROPERTY name -> std::str;
             };
-            CREATE ALIAS test::Bar :=
-                (WITH
-                    MODULE test
-                SELECT
-                    Foo {
-                        name,
-                        calc := 1
-                    }
-                );
+            CREATE ALIAS test::Bar := (
+                SELECT test::Foo {
+                    name,
+                    calc := 1
+                }
+            );
             """
         )
 
@@ -4669,10 +4635,8 @@ class TestDescribe(tb.BaseSchemaLoadTest):
                 CREATE OPTIONAL SINGLE PROPERTY name -> std::str;
             };
             CREATE ALIAS test::Bar {
-                USING (WITH
-                    MODULE test
-                SELECT
-                    Foo {
+                USING (
+                    SELECT test::Foo {
                         name,
                         calc := 1
                     }
@@ -4691,12 +4655,9 @@ class TestDescribe(tb.BaseSchemaLoadTest):
             'DESCRIBE MODULE test',
 
             """
-            CREATE ALIAS test::scalar_alias :=
-                (WITH
-                    MODULE test
-                SELECT
-                    {1, 2, 3}
-                );
+            CREATE ALIAS test::scalar_alias := (
+                {1, 2, 3}
+            );
             """
         )
 
@@ -4710,14 +4671,12 @@ class TestDescribe(tb.BaseSchemaLoadTest):
             'DESCRIBE MODULE test',
 
             """
-            CREATE ALIAS test::array_alias :=
-                ([1, 2, 3]);
-            CREATE ALIAS test::tuple_alias :=
-                (WITH
-                    MODULE test
-                SELECT
-                    (1, 2, 3)
-                );
+            CREATE ALIAS test::array_alias := (
+                [1, 2, 3]
+            );
+            CREATE ALIAS test::tuple_alias := (
+                (1, 2, 3)
+            );
             """
         )
 
@@ -4794,13 +4753,7 @@ class TestDescribe(tb.BaseSchemaLoadTest):
                     CREATE ANNOTATION std::title := 'compprop';
                 };
                 CREATE OPTIONAL SINGLE LINK annotated_link {
-                    USING (WITH
-                        MODULE test
-                    SELECT
-                        Foo
-                    LIMIT
-                        1
-                    );
+                    USING (SELECT test::Foo LIMIT 1);
                     CREATE ANNOTATION std::title := 'complink';
                 };
                 CREATE OPTIONAL SINGLE LINK complink := (WITH

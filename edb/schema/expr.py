@@ -113,10 +113,14 @@ class Expression(struct.MixedStruct, s_abc.ObjectContainer, s_abc.Expression):
         as_fragment: bool = False,
         orig_text: Optional[str] = None,
     ) -> Expression:
+        from edb.edgeql.compiler import normalization as qlnorm
+
         if orig_text is None:
             orig_text = qlcodegen.generate_source(qltree, pretty=False)
         if not as_fragment:
-            qltree = imprint_expr_context(qltree, modaliases)
+            # qltree = imprint_expr_context(qltree, modaliases)
+            qltree = qlnorm.normalize(qltree, schema=schema, modaliases=modaliases)
+
         norm_text = qlcodegen.generate_source(qltree, pretty=False)
 
         return cls(
